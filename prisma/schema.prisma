@@ -1,0 +1,248 @@
+// 数据源配置部分，定义与数据库的连接信息
+// datasource 用于指定 Prisma 要连接的数据库相关信息
+datasource db {
+  // provider 指定数据库类型，这里使用 MySQL 数据库
+  provider = "mysql"
+  // url 通过环境变量 DATABASE_URL 获取数据库连接字符串，增强配置的灵活性和安全性
+  url      = env("DATABASE_URL")
+}
+
+// 生成器配置部分，定义如何生成 Prisma Client
+// generator 用于指定 Prisma 生成代码的相关信息
+generator client {
+  // provider 指定生成的客户端类型，这里使用 Prisma Client for JavaScript
+  provider = "prisma-client-js"
+}
+
+/**
+ * 用户表模型
+ * 存储用户的基本信息，如邮箱、密码等
+ */
+model Users {
+  // 自增的主键 ID，用于唯一标识每条用户记录
+  id         Int      @id @default(autoincrement())
+  // 用户的唯一标识 ID，使用 UUID 保证全局唯一性
+  user_id     String   @unique @default(uuid()) @db.VarChar(36)
+  // 用户的邮箱，必须唯一，用于用户登录或联系
+  email      String   @unique
+  // 用户的密码，经过加密存储
+  password   String
+  // 表示用户信息是否可见的标志，默认为可见
+  is_visible Boolean  @default(true)
+  // 用户记录创建的时间，自动记录为当前时间
+  created_at DateTime @default(now())
+  // 用户记录更新的时间，每次记录更新时自动更新
+  updated_at DateTime @updatedAt
+
+  Articles Articles[]
+}
+
+/**
+ * 访问记录表模型
+ * 记录用户的访问信息，如 IP 地址、访问设备等
+ */
+model Visitors {
+  // 自增的主键 ID，用于唯一标识每条访问记录
+  id         Int      @id @default(autoincrement())
+  // 访问记录的唯一标识 ID，使用 BigInt 类型
+  visitor_id String   @unique @default(uuid()) @db.VarChar(36)
+  // 访问者的 IP 地址
+  ip         String
+  // 访问者使用的设备信息
+  device     String
+  // 表示访问记录是否可见的标志，默认为可见
+  is_visible Boolean  @default(true)
+  // 访问发生的时间，自动记录为当前时间
+  visited_at DateTime @default(now())
+}
+
+/**
+ * 分类表模型
+ * 存储文章或其他内容的分类信息
+ */
+model Categories {
+  // 自增的主键 ID，用于唯一标识每个分类记录
+  id           Int      @id @default(autoincrement())
+  // 分类的唯一标识 ID，使用 BigInt 类型
+  category_id  String   @unique @default(uuid()) @db.VarChar(36)
+  // 分类的名称，必须唯一
+  name         String   @unique
+  // 表示分类是否可见的标志，默认为可见
+  is_visible   Boolean  @default(true)
+  // 分类记录创建的时间，自动记录为当前时间
+  created_at   DateTime @default(now())
+  // 分类记录更新的时间，每次记录更新时自动更新
+  updated_at   DateTime @updatedAt
+
+  Articles Articles[]
+}
+
+/**
+ * 标签表模型
+ * 存储文章或其他内容的标签信息
+ */
+model Tags {
+  // 自增的主键 ID，用于唯一标识每个标签记录
+  id          Int      @id @default(autoincrement())
+  // 标签的唯一标识 ID，使用 BigInt 类型
+  tag_id      String   @unique @default(uuid()) @db.VarChar(36)
+  // 标签的名称，必须唯一
+  name        String   @unique
+  // 表示标签是否可见的标志，默认为可见
+  is_visible  Boolean  @default(true)
+  // 标签记录创建的时间，自动记录为当前时间
+  created_at  DateTime @default(now())
+  // 标签记录更新的时间，每次记录更新时自动更新
+  updated_at  DateTime @updatedAt
+
+  Articles Articles[] @relation("ArticleTags")
+
+  ArticleTags ArticleTags[]
+}
+
+/**
+ * 文章表模型
+ * 存储文章的详细信息，如标题、内容、分类等
+ */
+model Articles {
+  // 自增的主键 ID，用于唯一标识每篇文章记录
+  id           Int      @id @default(autoincrement())
+  // 文章的唯一标识 ID，使用 BigInt 类型
+  article_id   String   @unique @default(uuid()) @db.VarChar(36)
+  // 文章的标题
+  title        String
+  // 文章的内容，使用字符串类型存储
+  content      String
+  // 文章所属的分类 ID，可为空
+  category_id  String?
+  // 文章的作者 ID，可为空
+  author_id    String?
+  // 表示文章是否可见的标志，默认为可见
+  is_visible   Boolean  @default(true)
+  // 文章的发布时间，可为空
+  published_at DateTime?
+  // 文章记录创建的时间，自动记录为当前时间
+  created_at   DateTime @default(now())
+  // 文章记录更新的时间，每次记录更新时自动更新
+  updated_at   DateTime @updatedAt
+  // 关联文章所属的分类，通过 category_id 关联
+  category     Categories? @relation(fields: [category_id], references: [category_id])
+  // 关联文章的作者，通过 author_id 关联
+  author       Users?      @relation(fields: [author_id], references: [user_id])
+  // 关联文章的标签，使用 ArticleTags 关系表
+  tags         Tags[]      @relation("ArticleTags")
+
+  ArticleTags ArticleTags[]
+}
+
+/**
+ * 文章标签关联表模型
+ * 用于建立文章和标签之间的多对多关系
+ */
+model ArticleTags {
+  // 关联的文章 ID
+  article_id String
+  // 关联的标签 ID
+  tag_id     String
+  // 关联文章，通过 article_id 关联
+  article    Articles @relation(fields: [article_id], references: [article_id])
+  // 关联标签，通过 tag_id 关联
+  tag        Tags     @relation(fields: [tag_id], references: [tag_id])
+
+  // 组合主键，由 article_id 和 tag_id 共同构成，保证记录的唯一性
+  @@id([article_id, tag_id])
+}
+
+/**
+ * 成员表模型
+ * 存储团队成员的基本信息，如姓名、角色等
+ */
+model Members {
+  // 自增的主键 ID，用于唯一标识每个成员记录
+  id          Int      @id @default(autoincrement())
+  // 成员的唯一标识 ID，使用 BigInt 类型
+  member_id   String   @unique @default(uuid()) @db.VarChar(36)
+  // 成员的姓名
+  name        String
+  // 成员的角色
+  role        String
+  // 成员的照片 URL，可为空
+  photo       String?
+  // 成员的联系方式，可为空
+  contact     String?
+  // 成员的详细介绍，可为空
+  bio         String?
+  // 表示成员信息是否可见的标志，默认为可见
+  is_visible  Boolean  @default(true)
+  // 成员记录创建的时间，自动记录为当前时间
+  created_at  DateTime @default(now())
+  // 成员记录更新的时间，每次记录更新时自动更新
+  updated_at  DateTime @updatedAt
+}
+
+/**
+ * 研究成果表模型
+ * 存储研究成果的相关信息，如标题、类型、内容等
+ */
+model Publications {
+  // 自增的主键 ID，用于唯一标识每个研究成果记录
+  id              Int      @id @default(autoincrement())
+  // 研究成果的唯一标识 ID，使用 BigInt 类型
+  publication_id  String   @unique @default(uuid()) @db.VarChar(36)
+  // 研究成果的标题
+  title           String
+  // 研究成果的类型
+  type            String
+  // 研究成果的内容，使用字符串类型存储
+  content         String
+  // 表示研究成果是否可见的标志，默认为可见
+  is_visible      Boolean  @default(true)
+  // 研究成果记录创建的时间，自动记录为当前时间
+  created_at      DateTime @default(now())
+  // 研究成果记录更新的时间，每次记录更新时自动更新
+  updated_at      DateTime @updatedAt
+}
+
+/**
+ * 联系我们表模型
+ * 存储用户的联系信息，如邮箱、电话、地址等
+ */
+model Contact {
+  // 自增的主键 ID，用于唯一标识每条联系记录
+  id           Int      @id @default(autoincrement())
+  // 联系记录的唯一标识 ID，使用 BigInt 类型
+  contact_id   String   @unique @default(uuid()) @db.VarChar(36)
+  // 联系用户的邮箱
+  email        String
+  // 联系用户的电话，可为空
+  phone        String?
+  // 联系用户的地址，可为空
+  address      String?
+  // 表示联系记录是否可见的标志，默认为可见
+  is_visible   Boolean  @default(true)
+  // 联系记录创建的时间，自动记录为当前时间
+  created_at   DateTime @default(now())
+  // 联系记录更新的时间，每次记录更新时自动更新
+  updated_at   DateTime @updatedAt
+}
+
+/**
+ * 评论表模型
+ * 存储文章或其他内容的评论信息
+ */
+model Comments {
+  // 自增的主键 ID，用于唯一标识每条评论记录
+  id           Int      @id @default(autoincrement())
+  // 评论的唯一标识 ID，使用 BigInt 类型
+  comment_id   String   @unique @default(uuid()) @db.VarChar(36)
+  // 评论者的姓名
+  name         String
+  // 评论者的邮箱
+  email        String
+  // 评论的内容，使用字符串类型存储
+  content      String
+  // 表示评论是否可见的标志，默认为可见
+  is_visible   Boolean  @default(true)
+  // 评论记录创建的时间，自动记录为当前时间
+  created_at   DateTime @default(now())
+}
