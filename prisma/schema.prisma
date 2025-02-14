@@ -28,13 +28,14 @@ model Users {
   // 用户的密码，经过加密存储
   password   String
   // 表示用户信息是否可见的标志，默认为可见
-  is_visible Boolean  @default(true)
+  status Boolean  @default(true)
   // 用户记录创建的时间，自动记录为当前时间
-  created_at DateTime @default(now())
+  created_time DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 用户记录更新的时间，每次记录更新时自动更新
-  updated_at DateTime @updatedAt
+  updated_time DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
 
   Articles Articles[]
+  @@map("users")
 }
 
 /**
@@ -51,9 +52,10 @@ model Visitors {
   // 访问者使用的设备信息
   device     String
   // 表示访问记录是否可见的标志，默认为可见
-  is_visible Boolean  @default(true)
+  status Boolean  @default(true)
   // 访问发生的时间，自动记录为当前时间
-  visited_at DateTime @default(now())
+  visited_at DateTime @default(dbgenerated("NOW()")) @db.DateTime
+  @@map("visitors")
 }
 
 /**
@@ -68,13 +70,33 @@ model Categories {
   // 分类的名称，必须唯一
   name         String   @unique
   // 表示分类是否可见的标志，默认为可见
-  is_visible   Boolean  @default(true)
+  status   Boolean  @default(true)
   // 分类记录创建的时间，自动记录为当前时间
-  created_at   DateTime @default(now())
+  created_time   DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 分类记录更新的时间，每次记录更新时自动更新
-  updated_at   DateTime @updatedAt
+  updated_time   DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
 
   Articles Articles[]
+  @@map("categories")
+}
+
+/**
+ * 文章标签关联表模型
+ * 用于建立文章和标签之间的多对多关系
+ */
+model ArticleTags {
+  // 关联的文章 ID
+  article_id String
+  // 关联的标签 ID
+  tag_id     String
+  // 关联文章，通过 article_id 关联
+  article    Articles @relation("ArticleTags", fields: [article_id], references: [article_id])
+  // 关联标签，通过 tag_id 关联
+  tag        Tags     @relation("ArticleTags", fields: [tag_id], references: [tag_id])
+
+  // 组合主键，由 article_id 和 tag_id 共同构成，保证记录的唯一性
+  @@id([article_id, tag_id])
+  @@map("article_tags")
 }
 
 /**
@@ -89,15 +111,18 @@ model Tags {
   // 标签的名称，必须唯一
   name        String   @unique
   // 表示标签是否可见的标志，默认为可见
-  is_visible  Boolean  @default(true)
+  status  Boolean  @default(true)
   // 标签记录创建的时间，自动记录为当前时间
-  created_at  DateTime @default(now())
+  created_time  DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 标签记录更新的时间，每次记录更新时自动更新
-  updated_at  DateTime @updatedAt
+  updated_time  DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
 
-  Articles Articles[] @relation("ArticleTags")
+  // 关联文章的反向关系，通过 ArticleTags 关系表
+  articles    Articles[] @relation("ArticleTags")
+  ArticleTags ArticleTags[] @relation("ArticleTags")
 
-  ArticleTags ArticleTags[]
+
+  @@map("tags")
 }
 
 /**
@@ -118,40 +143,26 @@ model Articles {
   // 文章的作者 ID，可为空
   author_id    String?
   // 表示文章是否可见的标志，默认为可见
-  is_visible   Boolean  @default(true)
+  status   Boolean  @default(true)
   // 文章的发布时间，可为空
   published_at DateTime?
   // 文章记录创建的时间，自动记录为当前时间
-  created_at   DateTime @default(now())
+  created_time   DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 文章记录更新的时间，每次记录更新时自动更新
-  updated_at   DateTime @updatedAt
+  updated_time   DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
   // 关联文章所属的分类，通过 category_id 关联
   category     Categories? @relation(fields: [category_id], references: [category_id])
   // 关联文章的作者，通过 author_id 关联
   author       Users?      @relation(fields: [author_id], references: [user_id])
   // 关联文章的标签，使用 ArticleTags 关系表
   tags         Tags[]      @relation("ArticleTags")
+  // 添加与 ArticleTags 模型关联的反向关系字段
+  articleTags ArticleTags[] @relation("ArticleTags")
 
-  ArticleTags ArticleTags[]
+  @@map("articles")
 }
 
-/**
- * 文章标签关联表模型
- * 用于建立文章和标签之间的多对多关系
- */
-model ArticleTags {
-  // 关联的文章 ID
-  article_id String
-  // 关联的标签 ID
-  tag_id     String
-  // 关联文章，通过 article_id 关联
-  article    Articles @relation(fields: [article_id], references: [article_id])
-  // 关联标签，通过 tag_id 关联
-  tag        Tags     @relation(fields: [tag_id], references: [tag_id])
 
-  // 组合主键，由 article_id 和 tag_id 共同构成，保证记录的唯一性
-  @@id([article_id, tag_id])
-}
 
 /**
  * 成员表模型
@@ -173,11 +184,12 @@ model Members {
   // 成员的详细介绍，可为空
   bio         String?
   // 表示成员信息是否可见的标志，默认为可见
-  is_visible  Boolean  @default(true)
+  status  Boolean  @default(true)
   // 成员记录创建的时间，自动记录为当前时间
-  created_at  DateTime @default(now())
+  created_time  DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 成员记录更新的时间，每次记录更新时自动更新
-  updated_at  DateTime @updatedAt
+  updated_time  DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
+  @@map("members")
 }
 
 /**
@@ -196,11 +208,12 @@ model Publications {
   // 研究成果的内容，使用字符串类型存储
   content         String
   // 表示研究成果是否可见的标志，默认为可见
-  is_visible      Boolean  @default(true)
+  status      Boolean  @default(true)
   // 研究成果记录创建的时间，自动记录为当前时间
-  created_at      DateTime @default(now())
+  created_time   DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 研究成果记录更新的时间，每次记录更新时自动更新
-  updated_at      DateTime @updatedAt
+  updated_time      DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
+  @@map("publications")
 }
 
 /**
@@ -219,11 +232,12 @@ model Contact {
   // 联系用户的地址，可为空
   address      String?
   // 表示联系记录是否可见的标志，默认为可见
-  is_visible   Boolean  @default(true)
+  status   Boolean  @default(true)
   // 联系记录创建的时间，自动记录为当前时间
-  created_at   DateTime @default(now())
+  created_time   DateTime @default(dbgenerated("NOW()")) @db.DateTime
   // 联系记录更新的时间，每次记录更新时自动更新
-  updated_at   DateTime @updatedAt
+  updated_time   DateTime @default(dbgenerated("NOW() ON UPDATE NOW()")) @db.Timestamp(0)
+  @@map("contact")
 }
 
 /**
@@ -242,7 +256,8 @@ model Comments {
   // 评论的内容，使用字符串类型存储
   content      String
   // 表示评论是否可见的标志，默认为可见
-  is_visible   Boolean  @default(true)
+  status   Boolean  @default(true)
   // 评论记录创建的时间，自动记录为当前时间
-  created_at   DateTime @default(now())
+  created_time   DateTime @default(dbgenerated("NOW()")) @db.DateTime
+  @@map("comments")
 }
