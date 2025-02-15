@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 export const POST = async (req: NextRequest) => {
   try {
     const requestData = await req.json();
+    console.log("请求数据:", requestData);
     // 检查请求数据是否为 null
     if (requestData === null) {
       console.log("请求数据为 null，返回错误响应");
