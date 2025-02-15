@@ -90,11 +90,12 @@ export default function AntdAdmin({ children }: { children: React.ReactNode }) {
           </Header>
           <Content
             style={{
-              margin: "24px 16px",
-              padding: 24,
+              margin: "12px ",
+              padding: "8px",
               minHeight: 280,
               background: colorBgContainer,
-              borderRadius: borderRadiusLG,
+              // borderRadius: borderRadiusLG,
+              overflow: "auto",
             }}
           >
             {children}

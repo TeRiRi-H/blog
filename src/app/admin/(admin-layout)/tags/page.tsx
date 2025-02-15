@@ -36,17 +36,26 @@ export default function TagsPage() {
   // 获取表单实例
   const [myForm] = Form.useForm();
   const [list, setList] = useState([]);
-  const [query, setQuery] = useState({});
+  const [query, setQuery] = useState({
+    per: 10,
+    page: 1,
+    name: "",
+    timestamp: Date.now(),
+  });
 
   // 当前选中的标签id，用于编辑。为空表示新增，存在表示修改
   const [cuurentTagId, setCurrentTagId] = useState("");
+  const [total, setTotal] = useState(0);
 
   //监听条件的改变
   useEffect(() => {
-    fetch("/api/admin/tags")
+    fetch(
+      `/api/admin/tags/list?page=${query.page}&per=${query.per}&name=${query.name}`
+    )
       .then((res) => res.json())
       .then((res) => {
         setList(res.data.list);
+        setTotal(res.data.total);
       });
   }, [query]);
 
@@ -71,12 +80,22 @@ export default function TagsPage() {
         </>
       }
     >
-      <Form layout="inline">
-        <Form.Item label="标题">
+      <Form
+        layout="inline"
+        onFinish={(v) => {
+          setQuery((prev) => ({
+            ...prev,
+            page: 1,
+            per: 10,
+            name: v.name,
+          }));
+        }}
+      >
+        <Form.Item label="标题" name="name">
           <Input placeholder="请输入标签名称" />
         </Form.Item>
         <Form.Item>
-          <Button type="primary" icon={<SearchOutlined />}>
+          <Button type="primary" icon={<SearchOutlined />} htmlType="submit">
             查询
           </Button>
         </Form.Item>
@@ -85,6 +104,17 @@ export default function TagsPage() {
         style={{ marginTop: 20 }}
         dataSource={list}
         rowKey="id"
+        pagination={{
+          total,
+          onChange: (page, pageSize) => {
+            setQuery((prev) => ({
+              ...prev,
+              page,
+              per: pageSize,
+              timestamp: Date.now(),
+            }));
+          },
+        }}
         columns={[
           {
             title: "标签",
@@ -169,6 +199,7 @@ export default function TagsPage() {
                         if (!res.ok) throw new Error("删除失败");
                         setQuery((prev) => ({
                           ...prev,
+                          pages: 1,
                           timestamp: Date.now(),
                         }));
                       } catch (e) {
@@ -228,7 +259,10 @@ export default function TagsPage() {
                 body: JSON.stringify(values),
               }).then((res) => res.json());
               setOpen(false);
-              setQuery({});
+              setQuery({
+                ...query,
+                timestamp: Date.now(),
+              });
             }
             //
           }}

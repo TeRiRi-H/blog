@@ -5,10 +5,29 @@ const prisma = new PrismaClient();
 
 //获取全部标签
 export async function GET(req: NextRequest) {
+  const per = req.nextUrl.searchParams.get("per") || "10";
+  const page = req.nextUrl.searchParams.get("page") || "1";
+  const name = req.nextUrl.searchParams.get("name") || "";
+
   const data = await prisma.tags.findMany({
-    where: {},
+    where: {
+      name: {
+        //模糊查询
+        contains: name,
+      },
+    },
     orderBy: {
       created_time: "desc",
+    },
+    take: parseInt(per),
+    skip: (parseInt(page) - 1) * parseInt(per),
+  });
+  const total = await prisma.tags.count({
+    where: {
+      name: {
+        //模糊查询
+        contains: name,
+      },
     },
   });
 
@@ -23,6 +42,8 @@ export async function GET(req: NextRequest) {
     errrorMessage: "",
     data: {
       list: data,
+      pages: Math.ceil(total / parseInt(per)),
+      total,
     },
   });
 }
