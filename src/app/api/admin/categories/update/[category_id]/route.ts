@@ -5,25 +5,21 @@ const prisma = new PrismaClient();
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { tag_id: string } }
+  { params }: { params: { category_id: string } }
 ) {
-  // console.log("更新标签信息,req:", params);
-  const tagId = await params.tag_id;
-  // console.log("更新标签信息,tag_id:", tagId);
+  const categoryId = params.category_id;
   try {
     const { type, value } = await req.json();
-    // console.log("更新标签信息,type:", type, ",value:", value);
-
-    let updatedTag;
+    let updatedCategory;
     if (type === "status") {
-      updatedTag = await prisma.tags.update({
-        where: { tag_id: tagId },
+      updatedCategory = await prisma.categories.update({
+        where: { category_id: categoryId },
         data: { status: Boolean(value) },
       });
     } else if (type === "name") {
       // console.log("更新标签名称:tagid:", tagId, ",value:", value);
-      updatedTag = await prisma.tags.update({
-        where: { tag_id: tagId },
+      updatedCategory = await prisma.categories.update({
+        where: { category_id: categoryId },
         data: { name: value.name },
       });
     } else {
@@ -33,7 +29,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       errorMessage: "",
-      data: updatedTag,
+      data: updatedCategory,
     });
   } catch (error) {
     return NextResponse.json({ error: "更新标签信息失败" }, { status: 500 });
